@@ -1,0 +1,50 @@
+version: "3.7"
+services:
+  database:
+    image: mysql:latest
+    container_name: database-mysql
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3206:3306"
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+      - mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: sample
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+
+  webserver:
+    image: nginx:latest
+    container_name: webserver-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./app:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d
+
+  php:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: api-php
+    restart: unless-stopped
+    volumes:
+      - ./app:/var/www
+    environment:
+      - ENV_AMBIENTE=dev
+      - PHP_DISPLAY_ERRORS=On
+      - PHP_ERROR_REPORTING=E_ALL & ~E_NOTICE
+    depends_on:
+      - database
+      - webserver
+    links:
+      - database
+      - webserver
+volumes:
+  mysql_data:
+    name: app_mysql_data
+    driver: local
